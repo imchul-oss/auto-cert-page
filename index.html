@@ -5,12 +5,12 @@
 <title>상장 제조기</title>
 <style id="printPageRule">@page{size:A4 landscape;margin:0}</style>
 <style>
-  @font-face { font-family:"GT Planar"; src:url("fonts/GT-Planar-Regular.woff2") format("woff2"); font-weight:400; font-style:normal; font-display:swap; }
-  @font-face { font-family:"GT Planar"; src:url("fonts/GT-Planar-Medium.woff2") format("woff2"); font-weight:500; font-style:normal; font-display:swap; }
-  @font-face { font-family:"Pretendard"; src:url("fonts/Pretendard-Regular.woff2") format("woff2"); font-weight:400; font-style:normal; font-display:swap; }
-  @font-face { font-family:"Pretendard"; src:url("fonts/Pretendard-Medium.woff2") format("woff2"); font-weight:500; font-style:normal; font-display:swap; }
-  @font-face { font-family:"Pretendard"; src:url("fonts/Pretendard-SemiBold.woff2") format("woff2"); font-weight:600; font-style:normal; font-display:swap; }
-  @font-face { font-family:"Pretendard"; src:url("fonts/Pretendard-Bold.woff2") format("woff2"); font-weight:700; font-style:normal; font-display:swap; }
+  @font-face { font-family:"GT Planar"; src:local("GT Planar Regular"),local("GT Planar"),url("fonts/GT-Planar-Regular.woff2") format("woff2"); font-weight:400; font-style:normal; font-display:swap; }
+  @font-face { font-family:"GT Planar"; src:local("GT Planar Medium"),local("GT Planar"),url("fonts/GT-Planar-Medium.woff2") format("woff2"); font-weight:500; font-style:normal; font-display:swap; }
+  @font-face { font-family:"Pretendard"; src:local("Pretendard Regular"),local("Pretendard"),url("fonts/Pretendard-Regular.woff2") format("woff2"); font-weight:400; font-style:normal; font-display:swap; }
+  @font-face { font-family:"Pretendard"; src:local("Pretendard Medium"),local("Pretendard"),url("fonts/Pretendard-Medium.woff2") format("woff2"); font-weight:500; font-style:normal; font-display:swap; }
+  @font-face { font-family:"Pretendard"; src:local("Pretendard SemiBold"),local("Pretendard"),url("fonts/Pretendard-SemiBold.woff2") format("woff2"); font-weight:600; font-style:normal; font-display:swap; }
+  @font-face { font-family:"Pretendard"; src:local("Pretendard Bold"),local("Pretendard"),url("fonts/Pretendard-Bold.woff2") format("woff2"); font-weight:700; font-style:normal; font-display:swap; }
 
   :root {
     --ink-2:#4F4F4F; --ink-1:#2F2F2F; --mint:#4DD2A7; --mint-2:#3ABF94;
@@ -134,7 +134,7 @@
   .rcpt .name { font-family: var(--ff-kr); font-size: calc(var(--fs-name) * 1px); color: var(--ink-1); font-weight: 700; letter-spacing: calc(var(--ls-name) * 1em); }
   .rcpt .aff { font-family: var(--ff-kr); font-size: calc(var(--fs-aff) * 1px); color: var(--ink-1); font-weight: 700; letter-spacing: calc(var(--ls-aff) * 1em); }
 
-  .body { margin: calc(var(--gap-body) * 1mm) 25mm 0; text-align: var(--al-body); font-family: var(--ff-kr); font-size: calc(var(--fs-body) * 1px); line-height: 1.95; color: var(--ink-2); font-weight: 400; text-wrap: pretty; letter-spacing: calc(var(--ls-body) * 1em); }
+  .body { margin: calc(var(--gap-body) * 1mm) 25mm 0; text-align: var(--al-body); font-family: var(--ff-kr); font-size: calc(var(--fs-body) * 1px); line-height: 1.95; color: var(--ink-2); font-weight: 400; text-wrap: pretty; white-space: pre-line; letter-spacing: calc(var(--ls-body) * 1em); }
 
   .date { margin-top: calc(var(--gap-date) * 1mm); text-align: var(--al-date); font-family: var(--ff-kr); font-size: calc(var(--fs-date) * 1px); color: var(--ink-1); font-weight: 600; letter-spacing: calc(var(--ls-date) * 1em); }
   .org { margin-top: calc(var(--gap-org) * 1mm); text-align: var(--al-signer); }
@@ -197,7 +197,7 @@
   <button onclick="downloadSampleCSV()" title="작성용 예시 CSV 내려받기">예시 CSV</button>
   <span class="sep" aria-hidden="true"></span>
   <button onclick="togglePanel()" title="전역 조절 패널 (모든 페이지 공통)"><span class="dot"></span>조절</button>
-  <button onclick="lockAll()" title="모든 편집 영역 잠그기">잠금</button>
+  <button id="btnLock" onclick="toggleLock()" title="모든 편집 영역 잠그기 (다시 누르면 해제)">잠금</button>
   <button onclick="resetAll()" title="초기 내용으로">초기화</button>
 </div>
 
@@ -355,7 +355,9 @@
 
   let settings=readSettings(), pages=loadPages(), activeIndex=0, locked=false;
   function readSettings(){ for(const k of [SETTINGS_KEY,LEGACY_SETTINGS]){ try{const o=JSON.parse(localStorage.getItem(k)||"null"); if(o&&typeof o==="object") return o;}catch(e){} } return {}; }
-  function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+  let storageWarned=false;
+  function safeSet(key,val){ try{ localStorage.setItem(key,val); }catch(e){ if(!storageWarned){ storageWarned=true; alert("브라우저 저장 공간이 가득 차서 자동 저장에 실패했습니다.\n도장·로고 이미지 용량을 줄이거나 [초기화]로 저장 공간을 비워주세요.\n(편집은 계속 가능하지만 새로고침하면 이번 변경이 사라질 수 있습니다.)"); } console.warn("localStorage 저장 실패:",key,e); } }
+  function saveSettings(){ safeSet(SETTINGS_KEY, JSON.stringify(settings)); }
   function getVar(n){ return settings[n]!==undefined?settings[n]:DEFAULTS[n]; }
   function setVar(n,v){ settings[n]=v; root.style.setProperty(n,v); saveSettings(); }
   function applyVars(){ Object.keys(DEFAULTS).forEach(n=>root.style.setProperty(n,getVar(n))); }
@@ -366,8 +368,16 @@
     try{stamp=JSON.parse(localStorage.getItem(LEGACY_STAMP)||"{}");}catch(e){}
     return [{fields,stamp}];
   }
-  function savePages(){ localStorage.setItem(PAGES_KEY, JSON.stringify(pages)); }
+  let saveTimer=0, savePending=false;
+  function savePages(){ savePending=false; clearTimeout(saveTimer); safeSet(PAGES_KEY, JSON.stringify(pages)); }
+  function savePagesSoon(){ savePending=true; clearTimeout(saveTimer); saveTimer=setTimeout(savePages,400); }
+  window.addEventListener("beforeunload",()=>{ if(savePending)savePages(); });
   function newPageData(){ return {fields:Object.assign({},DEFAULT_FIELDS),stamp:{}}; }
+  function readImageScaled(file,maxDim,cb){
+    const r=new FileReader();
+    r.onload=()=>{ const img=new Image(); img.onload=()=>{ const s=Math.min(1,maxDim/Math.max(img.width||1,img.height||1)); if(s>=1){cb(r.result);return;} const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(img.width*s)); c.height=Math.max(1,Math.round(img.height*s)); c.getContext("2d").drawImage(img,0,0,c.width,c.height); const jpeg=file.type==="image/jpeg"; cb(c.toDataURL(jpeg?"image/jpeg":"image/png",jpeg?0.85:undefined)); }; img.onerror=()=>cb(r.result); img.src=r.result; };
+    r.readAsDataURL(file);
+  }
 
   const controls=document.querySelectorAll(".panel [data-var]");
   function fmtVal(c,v){ if(c.dataset.type==="color") return String(v); return v+" "+(c.dataset.unit||""); }
@@ -402,10 +412,11 @@
       else { if(img)img.remove(); if(svg)svg.style.display="block"; }
     });
   }
-  document.getElementById("logoInput").addEventListener("change",(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f||!f.type.startsWith("image/"))return; const r=new FileReader(); r.onload=()=>{settings.logo=r.result;saveSettings();applyBrand();}; r.readAsDataURL(f); e.target.value=""; });
+  document.getElementById("logoInput").addEventListener("change",(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f||!f.type.startsWith("image/"))return; readImageScaled(f,1200,(url)=>{settings.logo=url;applyBrand();saveSettings();}); e.target.value=""; });
   function removeLogo(){ settings.logo=null; saveSettings(); applyBrand(); }
 
-  function defaultPos(){ return {x:pageWidthMM()*0.69,y:pageHeightMM()*0.80}; }
+  const PAGE_PAD_MM=14; /* .page padding:14mm — 도장 좌표는 .inner 기준이므로 페이지 기준 비율에서 차감 */
+  function defaultPos(){ return {x:pageWidthMM()*0.69-PAGE_PAD_MM,y:pageHeightMM()*0.80-PAGE_PAD_MM}; }
   function currentSize(){ return parseFloat(getVar("--stamp-size"))||28; }
   function allStampPos(){ [...stage.children].forEach(p=>{ if(p._applyStampPos)p._applyStampPos(); }); }
 
@@ -448,9 +459,10 @@
     data.fields=data.fields||{}; data.stamp=data.stamp||{};
     const frag=tpl.content.cloneNode(true); const pageEl=frag.querySelector(".page");
     pageEl.querySelectorAll("[data-key]").forEach(el=>{
-      const k=el.dataset.key; el.textContent=(data.fields[k]!==undefined)?data.fields[k]:DEFAULT_FIELDS[k];
-      const save=()=>{data.fields[k]=el.textContent;savePages();};
-      el.addEventListener("input",save); el.addEventListener("blur",save);
+      const k=el.dataset.key; el.innerText=(data.fields[k]!==undefined)?data.fields[k]:DEFAULT_FIELDS[k];
+      const save=()=>{data.fields[k]=el.innerText;savePages();};
+      const saveSoon=()=>{data.fields[k]=el.innerText;savePagesSoon();};
+      el.addEventListener("input",saveSoon); el.addEventListener("blur",save);
       el.addEventListener("paste",e=>{ e.preventDefault(); const t=(e.clipboardData||window.clipboardData).getData("text"); document.execCommand("insertText",false,t); });
       el.addEventListener("keydown",e=>{ if(e.key==="Enter"&&k!=="body"){e.preventDefault();el.blur();} });
       if(locked)el.removeAttribute("contenteditable");
@@ -465,7 +477,7 @@
     function applyPos(){ const s=Object.assign(defaultPos(),data.stamp||{}); stamp.style.left=s.x+"mm"; stamp.style.top=s.y+"mm"; const sz=currentSize(); stamp.style.width=sz+"mm"; stamp.style.height=sz+"mm"; }
     pageEl._applyStampPos=applyPos;
     function setImg(url){ if(!url){ if(stampImg){stampImg.remove();stampImg=null;} stamp.classList.remove("filled");stamp.classList.add("empty"); data.stamp.src=null; savePages(); return; } if(!stampImg){stampImg=document.createElement("img");stamp.insertBefore(stampImg,stamp.firstChild);} stampImg.src=url; stamp.classList.remove("empty");stamp.classList.add("filled"); data.stamp.src=url; savePages(); }
-    function ingest(file){ if(!file||!file.type.startsWith("image/"))return; const r=new FileReader(); r.onload=()=>setImg(r.result); r.readAsDataURL(file); }
+    function ingest(file){ if(!file||!file.type.startsWith("image/"))return; readImageScaled(file,1200,setImg); }
     function openPicker(){ stampInput.value=""; stampInput.click(); }
     stampInput.addEventListener("change",()=>ingest(stampInput.files&&stampInput.files[0]));
     stamp.addEventListener("click",(e)=>{ if(stamp.classList.contains("empty")&&!e.target.closest(".stamp-menu"))openPicker(); });
@@ -474,10 +486,12 @@
     ["dragleave","dragend","drop"].forEach(ev=>stamp.addEventListener(ev,()=>stamp.classList.remove("dragover")));
     stamp.addEventListener("drop",(e)=>{ if(!e.dataTransfer||!e.dataTransfer.files.length)return; e.preventDefault(); ingest(e.dataTransfer.files[0]); });
     pageEl.addEventListener("dragover",(e)=>{ if(e.dataTransfer&&e.dataTransfer.types&&e.dataTransfer.types.includes("Files"))e.preventDefault(); });
-    pageEl.addEventListener("drop",(e)=>{ if(!e.dataTransfer||!e.dataTransfer.files.length)return; const f=e.dataTransfer.files[0]; if(!f.type.startsWith("image/"))return; e.preventDefault(); const rect=pageEl.getBoundingClientRect(); const mmPerPx=pageWidthMM()/rect.width; const x=(e.clientX-rect.left)*mmPerPx, y=(e.clientY-rect.top)*mmPerPx, w=currentSize(); data.stamp.x=x-w/2; data.stamp.y=y-w/2; applyPos(); ingest(f); });
+    /* 도장은 .inner(position:relative) 기준 absolute — 좌표 원점은 .page가 아니라 .inner 사각형 */
+    const innerEl=pageEl.querySelector(".inner");
+    pageEl.addEventListener("drop",(e)=>{ if(!e.dataTransfer||!e.dataTransfer.files.length)return; const f=e.dataTransfer.files[0]; if(!f.type.startsWith("image/"))return; e.preventDefault(); const rect=innerEl.getBoundingClientRect(); const mmPerPx=pageWidthMM()/pageEl.getBoundingClientRect().width; const x=(e.clientX-rect.left)*mmPerPx, y=(e.clientY-rect.top)*mmPerPx, w=currentSize(); data.stamp.x=x-w/2; data.stamp.y=y-w/2; applyPos(); ingest(f); });
     let drag=null;
-    stamp.addEventListener("pointerdown",(e)=>{ if(!stamp.classList.contains("filled"))return; if(e.target.closest(".stamp-menu"))return; stamp.setPointerCapture(e.pointerId); const rect=pageEl.getBoundingClientRect(); const mmPerPx=pageWidthMM()/rect.width; const sRect=stamp.getBoundingClientRect(); drag={mmPerPx,offX:(e.clientX-sRect.left)*mmPerPx,offY:(e.clientY-sRect.top)*mmPerPx,pageLeft:rect.left,pageTop:rect.top}; stamp.style.transition="none"; });
-    stamp.addEventListener("pointermove",(e)=>{ if(!drag)return; const x=(e.clientX-drag.pageLeft)*drag.mmPerPx-drag.offX, y=(e.clientY-drag.pageTop)*drag.mmPerPx-drag.offY; stamp.style.left=x+"mm"; stamp.style.top=y+"mm"; });
+    stamp.addEventListener("pointerdown",(e)=>{ if(!stamp.classList.contains("filled"))return; if(e.target.closest(".stamp-menu"))return; stamp.setPointerCapture(e.pointerId); const rect=innerEl.getBoundingClientRect(); const mmPerPx=pageWidthMM()/pageEl.getBoundingClientRect().width; const sRect=stamp.getBoundingClientRect(); drag={mmPerPx,offX:(e.clientX-sRect.left)*mmPerPx,offY:(e.clientY-sRect.top)*mmPerPx,baseLeft:rect.left,baseTop:rect.top}; stamp.style.transition="none"; });
+    stamp.addEventListener("pointermove",(e)=>{ if(!drag)return; const x=(e.clientX-drag.baseLeft)*drag.mmPerPx-drag.offX, y=(e.clientY-drag.baseTop)*drag.mmPerPx-drag.offY; stamp.style.left=x+"mm"; stamp.style.top=y+"mm"; });
     stamp.addEventListener("pointerup",()=>{ if(!drag)return; stamp.style.transition=""; data.stamp.x=parseFloat(stamp.style.left); data.stamp.y=parseFloat(stamp.style.top); savePages(); drag=null; });
     applyPos(); if(data.stamp&&data.stamp.src)setImg(data.stamp.src);
   }
@@ -487,7 +501,7 @@
   function addPages(count){ count=Math.max(1,Math.min(200,parseInt(count,10)||1)); const src=pages[activeIndex]||pages[pages.length-1]; const at=pages.length?activeIndex+1:0; const copies=[]; for(let i=0;i<count;i++){ copies.push(src?{fields:Object.assign({},src.fields),stamp:Object.assign({},src.stamp)}:newPageData()); } pages.splice(at,0,...copies); savePages(); renderAll(); const na=at+count-1; setActive(na); const el=stage.children[na]; if(el)el.scrollIntoView({behavior:"smooth",block:"center"}); }
   function addPage(){ addPages(1); }
   function deletePage(){ if(pages.length<=1){ if(!confirm("마지막 한 페이지입니다. 내용을 초기 상태로 비울까요?"))return; pages[0]=newPageData(); savePages(); renderAll(); setActive(0); return; } if(!confirm("활성 페이지("+(activeIndex+1)+"번)를 삭제할까요?"))return; pages.splice(activeIndex,1); if(activeIndex>=pages.length)activeIndex=pages.length-1; savePages(); renderAll(); setActive(activeIndex); }
-  function lockAll(){ locked=true; document.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute("contenteditable")); hideInspector(); }
+  function toggleLock(){ locked=!locked; document.querySelectorAll("#stage [data-key]").forEach(el=>{ if(locked)el.removeAttribute("contenteditable"); else el.setAttribute("contenteditable","true"); }); const b=document.getElementById("btnLock"); if(b){ b.textContent=locked?"잠금 해제":"잠금"; b.title=locked?"편집 잠금을 해제합니다":"모든 편집 영역 잠그기 (다시 누르면 해제)"; } hideInspector(); }
   function resetAll(){ if(!confirm("저장된 모든 페이지·도장·간격·크기·외곽선·로고·정렬을 초기화할까요?"))return; [PAGES_KEY,SETTINGS_KEY,LEGACY_PAGES,LEGACY_SETTINGS,LEGACY_TEXT,LEGACY_STAMP].forEach(k=>localStorage.removeItem(k)); location.reload(); }
 
   const CSV_COLS=Object.keys(DEFAULT_FIELDS);
@@ -505,7 +519,11 @@
     const a=document.createElement("a"); a.href=url; a.download="certificate_list_sample.csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
-  applyVars(); syncControls(); applyEnFont(); applyOrientation(); renderAll(); setActive(0); savePages();
+  /* 페이지 밖이나 비이미지 파일을 드롭해도 브라우저가 파일을 열며 이동하지 않도록 전역 차단 */
+  window.addEventListener("dragover",(e)=>{ e.preventDefault(); });
+  window.addEventListener("drop",(e)=>{ e.preventDefault(); });
+
+  applyVars(); syncControls(); applyEnFont(); applyOrientation(); renderAll(); setActive(0); savePages(); saveSettings();
 </script>
 </body>
 </html>
